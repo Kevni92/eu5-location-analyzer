@@ -12,6 +12,19 @@ Diese Version ist absichtlich keine finale Economy-UI. Sie ist ein diagnostische
 
 Der Builder verlangt für jeden Patch genau einen erwarteten Vanilla-Anker. Ändert Paradox die Datei so, dass ein Anker fehlt oder mehrfach vorkommt, bricht der Build ab. Das ist gewollt.
 
+## Verifizierte Budget-Getter
+
+Die Recherche nach dem ersten Entwurf hat einen wichtigen offenen Punkt geklärt. Vanilla verwendet in `in_game/gui/shared/topbar_tooltips.gui` direkt:
+
+```text
+EconomyView.GetAllIncome
+EconomyView.GetAllExpense
+```
+
+Damit stehen numerische Gesamtwerte für monatliche Einnahmen und Ausgaben zur Verfügung.
+
+Für einzelne generische Maintenance-/Spending-Einträge ist zusätzlich `MaintenanceSetting.GetExpense` in aktuellen 1.3-UI-Implementierungen belegt. Für die Debuganzeige wird der Betrag mit `Abs_CFixedPoint` normalisiert, damit die Budgetquote unabhängig von der Vorzeichenkonvention positiv dargestellt wird.
+
 ## Debug-Patches
 
 ### 1. Tax Base / Wealth
@@ -36,7 +49,7 @@ Taxable Wealth Share = Total Tax Base / max(Total Wealth, 0.01)
 
 Die `0.01` dient nur als Schutz vor Division durch null. Für normale Länder mit Wealth > 0 entspricht der Wert exakt `Tax Base / Wealth`.
 
-Verwendete Vanilla-/Engine-Zugriffe:
+Verwendete Zugriffe:
 
 - `Player.GetTotalTaxBase`
 - `Player.GetTotalWealth`
@@ -51,17 +64,26 @@ Die Vanilla-Karte zeigt bereits den tatsächlichen monatlichen Aufwand über:
 MaintenanceSetting.GetExpenseWithCurrency
 ```
 
-Im Debug-MVP wird der sekundäre Benefit-Text temporär durch die exakte Sliderstellung ersetzt:
+Der Debug-MVP ersetzt den sekundären Benefit-Text temporär durch eine kompakte Diagnose:
 
 ```text
-MaintenanceSetting.GetSliderValue
+25%|4%B
+```
+
+Bedeutung:
+
+```text
+25 % = MaintenanceSetting.GetSliderValue
+ 4 % = abs(MaintenanceSetting.GetExpense) / abs(EconomyView.GetAllExpense)
+ B   = Budget / total monthly expenses
 ```
 
 Damit stehen im selben Screenshot pro generischem Slider zur Verfügung:
 
 - Name,
 - absolute monatliche Kosten,
-- Sliderstellung in Prozent.
+- Sliderstellung in Prozent,
+- Anteil an den gesamten Monatsausgaben.
 
 Die finale UI soll den ursprünglichen Benefit-Text wieder erhalten; der Debug-MVP opfert ihn nur für Platz und maximale Robustheit.
 
@@ -73,35 +95,30 @@ Vanilla zeigt oben bereits:
 EconomyView.GetStabilityInvestmentExpense
 ```
 
-Der Debug-MVP ersetzt unten temporär die Stability-Change-Anzeige durch:
+Der Debug-MVP ersetzt unten temporär die Stability-Change-Anzeige durch dasselbe kompakte Format:
 
 ```text
-EconomyView.GetDefaultStabilityInvestment
+25%|4%B
 ```
 
-Damit sind absolute Kosten und exakte Sliderstellung gleichzeitig sichtbar.
-
-## Was noch NICHT behauptet wird
-
-Für die gewünschte finale Kennzahl
+Dabei gilt:
 
 ```text
-Sliderkosten / gesamte Monatsausgaben
+Slider % = EconomyView.GetDefaultStabilityInvestment
+Budget % = abs(EconomyView.GetStabilityInvestmentExpense) / abs(EconomyView.GetAllExpense)
 ```
 
-ist bislang kein verifizierter direkter numerischer `EconomyView`-Getter für die Gesamtausgaben im Vanilla-GUI-Code gefunden worden. Dasselbe gilt für einen direkten numerischen Getter für das gesamte Monatseinkommen.
+Damit sind absolute Kosten, Sliderstellung und Budgetanteil gleichzeitig sichtbar.
 
-Vanilla stellt zwar u. a. bereit:
+## Was bewusst noch nicht in die Karte gepackt wird
 
-- `EconomyView.GetAllIncomeInfo`
-- `EconomyView.GetAllExpenseInfo`
-- `EconomyView.GetIncome('<category>')`
-- `EconomyView.GetExpense('<category>')`
-- `EconomyView.GetEstimatedBalance`
+Da `EconomyView.GetAllIncome` nun ebenfalls verifiziert ist, kann später auch berechnet werden:
 
-aber daraus folgt noch nicht automatisch ein sauberer, generischer numerischer Total-Getter für unsere Prozentrechnung.
+```text
+Slider Income Burden = Slider Expense / Total Monthly Income
+```
 
-Deshalb zeigt der MVP zunächst reale Rohwerte und erfindet keinen Nenner.
+Der Debug-MVP zeigt zunächst nur den Anteil an den Gesamtausgaben (`B`), damit die bestehende 60-Pixel-Zeile nicht überladen wird. Der Einkommensanteil ist für die finale Tooltip-/Detaildarstellung vorgemerkt.
 
 ## Gewünschte Screenshots nach dem Build
 
@@ -123,7 +140,7 @@ Sichtbar sollen möglichst gleichzeitig sein:
 
 - Slidername,
 - monatliche Kosten,
-- Debug-Prozentwert,
+- Debugwert `Slider%|Budget%B`,
 - bei Stability die Stability-Karte.
 
 Besonders wichtig:
@@ -133,7 +150,7 @@ Besonders wichtig:
 - Court/Government-/Legitimacy-bezogene Settings,
 - sonstige Settings, die über `EconomyView.GetMaintenanceSettings` erscheinen.
 
-Ziel: feststellen, welche gewünschten Slider tatsächlich über den generischen `MaintenanceSetting`-Datamodel laufen und wie viel horizontaler Platz für zusätzliche Budget-Prozente existiert.
+Ziel: feststellen, welche gewünschten Slider tatsächlich über den generischen `MaintenanceSetting`-Datamodel laufen und wie viel horizontaler Platz für zusätzliche Kennzahlen existiert.
 
 ### Screenshot C – optional mit Tooltips
 
@@ -151,7 +168,10 @@ Falls die Seite nicht korrekt lädt, bitte zusätzlich relevante Zeilen aus `err
 economy_lateralview
 MaintenanceSetting
 GetSliderValue
+GetExpense
+GetAllExpense
 Divide_CFixedPoint
+Abs_CFixedPoint
 Max_CFixedPoint
 GetDefaultStabilityInvestment
 ```
