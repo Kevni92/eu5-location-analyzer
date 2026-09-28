@@ -4,16 +4,29 @@ Debug-/Prototyping-Mod für Europa Universalis V.
 
 ## Aktueller Stand: Economy Debug UI (0.1.0-debug)
 
-Die erste lauffähige Version verändert ausschließlich die Economy-Seite und soll Daten für die spätere finale UI liefern.
+Die erste Version verändert ausschließlich die Economy-Seite und soll Daten für die spätere finale UI liefern.
 
-Sie zeigt bzw. ergänzt:
+Sie ergänzt:
 
-- `Tax Base` zusammen mit `Tax Base / Wealth` in Prozent,
-- bei generischen Maintenance-/Spending-Slidern die exakte Sliderstellung in Prozent,
-- beim Stability-Investment die exakte Sliderstellung,
-- die bereits von Vanilla angezeigten absoluten monatlichen Kosten bleiben sichtbar.
+- `Tax Base` um `Tax Base / Wealth` in Prozent,
+- bei generischen Maintenance-/Spending-Slidern die exakte Sliderstellung **und den Anteil an den gesamten Monatsausgaben**,
+- beim Stability-Investment ebenfalls Sliderstellung und Ausgabenanteil,
+- die von Vanilla bereits angezeigten absoluten monatlichen Kosten bleiben sichtbar.
 
-Damit kann ein Screenshot gleichzeitig Wealth, Tax Base, Economic Base, Tax Efficiency, Sliderstellung und Sliderkosten zeigen.
+Debugformat bei Slidern:
+
+```text
+25%|4%B
+```
+
+bedeutet:
+
+```text
+Sliderstellung:                25 %
+Anteil an gesamten Ausgaben:    4 %
+```
+
+Damit kann ein Screenshot gleichzeitig Wealth, Tax Base, Economic Base, Tax Efficiency, Sliderstellung, Sliderkosten und Budgetanteil zeigen.
 
 ## Warum wird die GUI generiert?
 
@@ -59,9 +72,9 @@ Der Builder bricht absichtlich ab, wenn die erwarteten Vanilla-Anker nicht exakt
 
 1. Mod aktivieren und Economy-Seite öffnen.
 2. Einen Screenshot des oberen Bereichs mit Economic Base / Wealth / Tax Base / Tax Efficiency machen.
-3. Einen Screenshot machen, auf dem die relevanten Ausgaben-Slider samt Kosten und Prozentwerten sichtbar sind.
+3. Einen Screenshot machen, auf dem die relevanten Ausgaben-Slider samt Kosten und Debugwert `Slider%|Budget%B` sichtbar sind.
 4. Besonders interessant sind Stability, Diplomacy und Court/Government-/Legitimacy-bezogene Spending-Slider.
-5. Falls die Economy-Seite nicht öffnet oder ein Debugwert leer/falsch ist, zusätzlich `error.log` nach `economy_lateralview`, `MaintenanceSetting`, `Divide_CFixedPoint` oder `GetSliderValue` durchsuchen.
+5. Falls die Economy-Seite nicht öffnet oder ein Debugwert leer/falsch ist, zusätzlich `error.log` nach `economy_lateralview`, `MaintenanceSetting`, `GetSliderValue`, `GetExpense`, `GetAllExpense`, `Divide_CFixedPoint` oder `GetDefaultStabilityInvestment` durchsuchen.
 
 ## Kompatibilität
 
