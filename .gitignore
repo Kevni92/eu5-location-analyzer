@@ -1,0 +1,5 @@
+# Generated from the user's installed vanilla Economy GUI.
+/in_game/gui/economy_lateralview.gui
+
+__pycache__/
+*.pyc
