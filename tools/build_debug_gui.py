@@ -15,6 +15,11 @@ DEFAULT_OUTPUT = REPO_ROOT / "in_game" / "gui" / "economy_lateralview.gui"
 
 PATCHES = (
     (
+        "budget_card_extra_info_slot",
+        '\t\t\ttext_single = {\n\t\t\t\tautoresize = yes\n\t\t\t\talign = right|nobaseline\n\t\t\t\tblock "income_text" {\n\t\t\t\t\traw_text = ""\n\t\t\t\t}\n\t\t\t}',
+        '\t\t\ttext_single = {\n\t\t\t\tautoresize = yes\n\t\t\t\talign = right|nobaseline\n\t\t\t\tblock "income_text" {\n\t\t\t\t\traw_text = ""\n\t\t\t\t}\n\t\t\t}\n\t\t\tblock "extra_info" {}',
+    ),
+    (
         "wealth_reconstruction_probe",
         'text = "[Player.GetTotalWealth|2L]"',
         'text = "[Player.GetTotalWealth|2L] | R[Player.MakeScope.ScriptValue(\'ela_total_wealth_reconstructed\')|2]"',
@@ -136,12 +141,12 @@ def apply_patch_once(text: str, patch_name: str, old: str, new: str) -> str:
 
 
 def apply_non_slider_maintenance_share_patch(text: str) -> tuple[str, int]:
-    """Patch only maintenance rows rendered without a slider.
+    """Add the budget share to maintenance rows rendered without a slider.
 
-    GetExpenseWithCurrency is a preformatted display string. Concatenating extra GUI
-    expressions to it can result in Jomini rendering "Unreadable String". For these rows,
-    use the already validated numeric GetExpense getter and render the expense currency
-    icon explicitly, then append the calculated budget share.
+    Keep Vanilla's GetExpenseWithCurrency display string untouched. In this template,
+    concatenating additional data expressions into that same text field produces
+    "Unreadable String" at runtime. Instead, budget_card gets an optional extra_info
+    slot and the percentage is rendered in its own text widget.
     """
     marker = (
         'visible = "[And( Not(MaintenanceSetting.ShowSlider), '
@@ -154,25 +159,40 @@ def apply_non_slider_maintenance_share_patch(text: str) -> tuple[str, int]:
             f"found {marker_count}. The installed EU5 GUI probably changed."
         )
 
-    target = 'raw_text = "[MaintenanceSetting.GetExpenseWithCurrency]"'
-    replacement = (
-        'raw_text = "[MaintenanceSetting.GetExpense|2+=]@expense! '
-        f"([Divide_CFixedPoint(Abs_CFixedPoint(MaintenanceSetting.GetExpense), {EXPENSE_SHARE_DENOMINATOR})|%1])"
-    )
-
     start = text.index(marker)
     window_end = min(len(text), start + 6000)
     window = text[start:window_end]
-    target_count = window.count(target)
-    if target_count != 1:
+
+    block_pattern = re.compile(
+        r'(?P<indent>[ \t]*)blockoverride "income_text" \{\s*\n'
+        r'(?P=indent)\traw_text = "\[MaintenanceSetting\.GetExpenseWithCurrency\]"\s*\n'
+        r'(?P=indent)\}'
+    )
+    matches = list(block_pattern.finditer(window))
+    if len(matches) != 1:
         raise SystemExit(
-            "ERROR: Non-slider maintenance expense text expected once inside its block, "
-            f"found {target_count}. The installed EU5 GUI probably changed."
+            "ERROR: Non-slider maintenance income_text block expected once inside its block, "
+            f"found {len(matches)}. The installed EU5 GUI probably changed."
         )
 
-    relative_index = window.index(target)
-    absolute_index = start + relative_index
-    text = text[:absolute_index] + replacement + text[absolute_index + len(target):]
+    match = matches[0]
+    indent = match.group("indent")
+    original_block = match.group(0)
+    extra_block = (
+        f'{indent}blockoverride "extra_info" {{\n'
+        f'{indent}\ttext_single = {{\n'
+        f'{indent}\t\tautoresize = yes\n'
+        f'{indent}\t\talign = right|nobaseline\n'
+        f'{indent}\t\traw_text = "([Divide_CFixedPoint(Abs_CFixedPoint(MaintenanceSetting.GetExpense), '
+        f'{EXPENSE_SHARE_DENOMINATOR})|%1])"\n'
+        f'{indent}\t}}\n'
+        f'{indent}}}'
+    )
+    replacement = original_block + "\n" + extra_block
+
+    absolute_start = start + match.start()
+    absolute_end = start + match.end()
+    text = text[:absolute_start] + replacement + text[absolute_end:]
     return text, 1
 
 
@@ -289,6 +309,7 @@ def build(source: Path, output: Path) -> None:
     print("  Slider expense: 25% | 4.2%B")
     print("  Fixed income : +43.91 (39.3%)")
     print("  Fixed expense: -14.47 (14.6%)")
+    print("  Non-slider maintenance keeps Vanilla amount + separate share text.")
     print("  R-prefixed Wealth/Tax Base values are reconstruction probes only.")
 
 
