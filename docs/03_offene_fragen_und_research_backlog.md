@@ -47,6 +47,32 @@ Ziel:
 
 Früh feststellen, welche theoretisch sinnvollen Formeln technisch im Map Mode realisierbar sind.
 
+### Economy-Page UI und Budgetmetriken
+
+Vanilla-verifiziert ist, dass die Economy-Seite oben bereits folgende Werte direkt anzeigt:
+
+- `Player.GetEconomicalBase`
+- `Player.GetTotalWealth`
+- `Player.GetTotalTaxBase`
+- `Player.GetModifierValueNoFormat('tax_income_efficiency')`
+
+Für die geplante UI-Erweiterung zu klären:
+
+- Kann `Total Tax Base / Total Wealth` direkt im GUI-Kontext berechnet werden?
+- Falls nicht: welcher Script-Value-/Scripted-GUI-Weg ist am stabilsten?
+- Welche API liefert `Total Monthly Expenses`?
+- Welche API liefert `Total Monthly Income`?
+- Lassen sich die aktuellen Monatskosten von Stability-, Diplomacy- und Court-/Government-Power-Slider direkt aus `EconomyView` auslesen?
+- Lassen sich daraus live `% of total expenses` und `% of monthly income` berechnen?
+- Kann während Slider-Dragging eine marginale Kostenanzeige aktualisiert werden?
+- Wie lässt sich die Vanilla-Economy-GUI minimal erweitern, ohne einen unnötig großen Override zu erzeugen?
+
+Ziel:
+
+`Taxable Wealth Share` sowie echte Budget-Anteile der Slider auf der bestehenden Economy-Seite darstellen.
+
+Siehe auch: `04_economy_page_ui_erweiterungen.md`.
+
 ---
 
 ## Priorität B – Hold vs. Vassal exakt modellieren
@@ -154,16 +180,19 @@ Diese Faktoren sollten zunächst separat sichtbar sein und erst später in einen
 ## Geplante Implementierungsreihenfolge
 
 1. Vanilla-Mechaniken und verfügbare Script-Scopes für Map Modes verifizieren.
-2. Einfachen Location-Debug-Map-Mode erstellen, der Rohwerte wie Control, Wealth und Population ausgibt.
-3. `Fiscal Efficiency` als erste berechnete Kennzahl implementieren.
-4. Economic-Base-Beitrag pro Location so exakt wie technisch möglich ergänzen.
-5. Population Value kalibrieren.
-6. Ersten `Retention Value` ohne Vasallenmodell erstellen.
-7. Subject-/Vassal-Mechanik vollständig verifizieren.
-8. `Retention Value` gegen `Subject Value` erweitern.
-9. RGO Economic Value ergänzen.
-10. RGO Strategic Value und weitere strategische Faktoren ergänzen.
-11. Regionale/zusammenhängende Subject-Candidate-Analyse prüfen.
+2. Economy-GUI-Zugriffe für Wealth, Tax Base, Income, Expenses und Sliderkosten verifizieren.
+3. `Taxable Wealth Share` als kleinen Economy-UI-MVP implementieren.
+4. Einfachen Location-Debug-Map-Mode erstellen, der Rohwerte wie Control, Wealth und Population ausgibt.
+5. `Fiscal Efficiency` als erste berechnete Kennzahl implementieren.
+6. Economic-Base-Beitrag pro Location so exakt wie technisch möglich ergänzen.
+7. Budget-Anteile der Economy-Slider ergänzen.
+8. Population Value kalibrieren.
+9. Ersten `Retention Value` ohne Vasallenmodell erstellen.
+10. Subject-/Vassal-Mechanik vollständig verifizieren.
+11. `Retention Value` gegen `Subject Value` erweitern.
+12. RGO Economic Value ergänzen.
+13. RGO Strategic Value und weitere strategische Faktoren ergänzen.
+14. Regionale/zusammenhängende Subject-Candidate-Analyse prüfen.
 
 ## Qualitätsregel
 
