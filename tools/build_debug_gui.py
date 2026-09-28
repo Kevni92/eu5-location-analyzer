@@ -30,11 +30,6 @@ PATCHES = (
         'raw_text = "[MaintenanceSetting.GetSliderValue|0%V] | [Divide_CFixedPoint(Abs_CFixedPoint(MaintenanceSetting.GetExpense), Max_CFixedPoint(Abs_CFixedPoint(EconomyView.GetAllExpense), \'(CFixedPoint)0.01\'))|%1]B"',
     ),
     (
-        "non_slider_maintenance_budget_share",
-        'raw_text = "[MaintenanceSetting.GetExpenseWithCurrency]"',
-        'raw_text = "[MaintenanceSetting.GetExpenseWithCurrency] ([Divide_CFixedPoint(Abs_CFixedPoint(MaintenanceSetting.GetExpense), Max_CFixedPoint(Abs_CFixedPoint(EconomyView.GetAllExpense), \'(CFixedPoint)0.01\'))|%1])"',
-    ),
-    (
         "stability_slider_percent_and_budget_share",
         'raw_text = "[EconomyView.GetStabilityChange|2+=]@stability!"',
         'raw_text = "[EconomyView.GetDefaultStabilityInvestment|0%V] | [Divide_CFixedPoint(Abs_CFixedPoint(EconomyView.GetStabilityInvestmentExpense), Max_CFixedPoint(Abs_CFixedPoint(EconomyView.GetAllExpense), \'(CFixedPoint)0.01\'))|%1]B"',
@@ -140,6 +135,46 @@ def apply_patch_once(text: str, patch_name: str, old: str, new: str) -> str:
     return text.replace(old, new, 1)
 
 
+def apply_non_slider_maintenance_share_patch(text: str) -> tuple[str, int]:
+    """Patch only the maintenance rows rendered without a slider.
+
+    GetExpenseWithCurrency occurs in both the slider and non-slider maintenance templates,
+    so a global single-anchor replacement is ambiguous. Anchor first on ShowSlider=false
+    and replace the expense text inside that item only.
+    """
+    marker = (
+        'visible = "[And( Not(MaintenanceSetting.ShowSlider), '
+        'Or(MaintenanceSetting.IsVisible, EconomyView.UnusedMaintenanceSettingsVisible))]"'
+    )
+    marker_count = text.count(marker)
+    if marker_count != 1:
+        raise SystemExit(
+            "ERROR: Non-slider maintenance block expected once, "
+            f"found {marker_count}. The installed EU5 GUI probably changed."
+        )
+
+    target = 'raw_text = "[MaintenanceSetting.GetExpenseWithCurrency]"'
+    replacement = (
+        'raw_text = "[MaintenanceSetting.GetExpenseWithCurrency] '
+        f"([Divide_CFixedPoint(Abs_CFixedPoint(MaintenanceSetting.GetExpense), {EXPENSE_SHARE_DENOMINATOR})|%1])"
+    )
+
+    start = text.index(marker)
+    window_end = min(len(text), start + 6000)
+    window = text[start:window_end]
+    target_count = window.count(target)
+    if target_count != 1:
+        raise SystemExit(
+            "ERROR: Non-slider maintenance expense text expected once inside its block, "
+            f"found {target_count}. The installed EU5 GUI probably changed."
+        )
+
+    relative_index = window.index(target)
+    absolute_index = start + relative_index
+    text = text[:absolute_index] + replacement + text[absolute_index + len(target):]
+    return text, 1
+
+
 def apply_income_expense_share_patches(text: str) -> tuple[str, dict[str, int]]:
     counts: dict[str, int] = {}
 
@@ -222,7 +257,9 @@ def build(source: Path, output: Path) -> None:
     for patch_name, old, new in PATCHES:
         patched = apply_patch_once(patched, patch_name, old, new)
 
+    patched, non_slider_count = apply_non_slider_maintenance_share_patch(patched)
     patched, dynamic_counts = apply_income_expense_share_patches(patched)
+    dynamic_counts["non_slider_maintenance_rows"] = non_slider_count
 
     header = (
         "# EU5 Location Analyzer - generated Economy analysis override\n"
