@@ -1,0 +1,29 @@
+# EU5 Location Analyzer - Economy analysis values
+#
+# IMPORTANT: `ela_total_wealth_reconstructed` is currently a reconstructed value,
+# not a direct vanilla country-level wealth game value. It follows the relation
+# used by current 1.3 community code: location wealth ~= location_tax_base / local_control.
+# The next runtime test must compare it against Player.GetTotalWealth before we treat
+# the resulting national ratio as fully validated.
+
+ela_location_wealth_reconstructed = {
+	value = location_tax_base
+	divide = {
+		value = local_control
+		min = 0.01
+	}
+}
+
+ela_total_wealth_reconstructed = {
+	every_owned_location = {
+		add = ela_location_wealth_reconstructed
+	}
+}
+
+ela_taxable_wealth_share = {
+	value = country_tax_base
+	divide = {
+		value = ela_total_wealth_reconstructed
+		min = 0.01
+	}
+}
