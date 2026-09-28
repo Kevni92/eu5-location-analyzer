@@ -2,7 +2,7 @@
 
 Stand: 2026-09-28
 
-Dieses Verzeichnis sammelt die fachliche Grundlage für eine Europa-Universalis-V-Mod, die einzelne Locations bewertet und die Ergebnisse über eigene Map Modes sichtbar macht.
+Dieses Verzeichnis sammelt die fachliche Grundlage für eine Europa-Universalis-V-Mod, die einzelne Locations bewertet und die Ergebnisse über eigene Map Modes sichtbar macht. Ergänzend soll die Economy-Seite um Kennzahlen erweitert werden, die Wealth, Tax Base und laufende Budgetbelastungen besser einordnen.
 
 ## Ziel
 
@@ -20,11 +20,19 @@ Dafür soll die Bewertung schrittweise mehrere Dimensionen berücksichtigen:
 - später ggf. Gebäude, Markt-/Handelswert, Manpower, Seestreitkräfte, Kultur/Religion, Geographie und militärische Lage,
 - Vergleich „direkt halten“ gegen „als Subject/Vasall halten“.
 
+Zusätzlich soll die Economy-Seite bessere Planungsinformationen liefern, insbesondere:
+
+- Verhältnis von Tax Base zu Wealth (`Taxable Wealth Share`),
+- Anteil einzelner Economy-Slider an den gesamten Monatsausgaben,
+- optional Anteil der Sliderkosten am Monatseinkommen,
+- später marginale Kosten einer Slidererhöhung und aggregierter Economic-Base-Spending-Druck.
+
 ## Dokumente
 
 - [01 – Problem und gesicherter Ist-Stand](01_problem_und_gesicherter_iststand.md)
 - [02 – Bewertungsmodell und Map-Mode-Ideen](02_bewertungsmodell_und_map_modes.md)
 - [03 – Offene Fragen und Research-Backlog](03_offene_fragen_und_research_backlog.md)
+- [04 – Economy-Page UI-Erweiterungen](04_economy_page_ui_erweiterungen.md)
 
 ## Grundprinzip
 
