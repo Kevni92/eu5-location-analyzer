@@ -27,16 +27,21 @@ DEFAULT_OUTPUT = REPO_ROOT / "in_game" / "gui" / "economy_lateralview.gui"
 # Abs_CFixedPoint is intentional because expense getters may be exposed with a
 # negative sign while the ratio we want is a positive budget share.
 #
-# Tax Base uses `text`, not `raw_text`, because the named block in the vanilla
-# subheader template already defines a `text` property. The first debug build used
-# raw_text here and the untouched base `text = "default"` won, producing the
-# literal word "default" in-game.
+# Runtime testing proved that Player.GetTotalTaxBase / Player.GetTotalWealth are
+# display/localization getters, not CFixedPoint arguments accepted by GUI math
+# helpers. Therefore the taxable-wealth percentage is calculated as a numeric
+# ScriptValue in in_game/common/script_values/ela_economy_values.txt and merely
+# displayed here.
 #
-# Runtime testing also proved that Player.GetTotalTaxBase / Player.GetTotalWealth
-# are display/localization getters, not CFixedPoint arguments accepted by GUI math
-# helpers. Therefore the percentage is calculated as a numeric ScriptValue in
-# in_game/common/script_values/ela_economy_values.txt and merely displayed here.
+# During this validation build, Wealth additionally shows `R<value>`, where R is
+# the reconstructed country wealth from our ScriptValue. This makes it possible to
+# compare the reconstruction directly against vanilla Player.GetTotalWealth.
 PATCHES = (
+    (
+        "wealth_reconstruction_probe",
+        'text = "[Player.GetTotalWealth|2L]"',
+        'text = "[Player.GetTotalWealth|2L] | R[Player.MakeScope.ScriptValue(\'ela_total_wealth_reconstructed\')|2]"',
+    ),
     (
         "taxable_wealth_share",
         'text = "[Player.GetTotalTaxBase]"',
