@@ -1,19 +1,55 @@
-# Economy Pie Charts – 0.3.0-alpha
+# Economy Pie Charts – 0.3.1-alpha
 
 ## Ziel
 
-Die Balance-Seite der Economy-Ansicht erhält zwei kompakte Tortendiagramme:
+Die Balance-Seite der Economy-Ansicht erhält einen **gemeinsamen Analyseblock direkt unterhalb der Vanilla-Zeile `Income / Expenses` und oberhalb der eigentlichen Listen**.
 
-- links: **Income Breakdown** in Grüntönen
-- rechts: **Expense Breakdown** in Rot-/Orangetönen
+Der Block enthält:
 
-Die Diagramme sollen auf einen Blick zeigen, welche Einnahme- bzw. Ausgabenblöcke das Monatsbudget dominieren. Jeder Slice ist hoverbar und liefert einen Tooltip zur zugehörigen Kategorie.
+- links: **Income Breakdown** in klar unterscheidbaren Grüntönen
+- rechts: **Expense Breakdown** in klar unterscheidbaren Rot-/Orange-/Bordeaux-Tönen
+- in der Mitte jedes Donuts: die aktuelle Gesamtsumme von Income bzw. Expenses
+- pro Slice: eigener Hover-Tooltip mit Name, Monatswert und Anteil an der jeweiligen Gesamtsumme
+
+## Runtime-Erkenntnisse aus 0.3.0-alpha
+
+Der erste Prototyp hat technisch gerendert, aber drei UX-/Runtime-Probleme gezeigt:
+
+1. Die Charts wurden an zwei verschiedenen Stellen innerhalb der linken und rechten Listen eingefügt. Dadurch lagen sie vertikal versetzt zwischen normalen Budgetzeilen.
+2. Die Farbpalette war zu ähnlich, sodass einzelne Slices visuell kaum voneinander zu unterscheiden waren.
+3. Die Slice-Tooltips reagierten nicht, weil die Slices zwar `raw_tooltip`/`tooltip` erhielten, aber nicht konsequent mit dem von Vanilla verwendeten `tagtooltip_enabled = yes` konfiguriert waren.
+
+0.3.1-alpha korrigiert genau diese drei Punkte.
 
 ## Vanilla-Grundlage
 
-EU5/Jomini besitzt ein natives `piechart`/`pieslice`-Widget. Vanilla nutzt dynamische Pie-Charts unter anderem für Market-Value-Contributions und Population-Auswertungen. Pie-Slices können Wert, Farbe und eigenen Tooltip erhalten.
+EU5/Jomini besitzt native `piechart`- und `pieslice`-Widgets. Vanilla nutzt für interaktive Slices das Muster:
 
-Für die Economy-Seite liegen die Daten allerdings nicht in einem einzigen fertigen Contribution-Datamodel vor. Deshalb kombiniert der Prototyp mehrere vorhandene Economy-Datenquellen.
+- `value` für die Segmentgröße
+- `color` für die Segmentfarbe
+- `tagtooltip_enabled = yes`
+- eigenen Tooltip pro Slice
+- `piechart_angles` für die Kreisgeometrie
+
+Die Mod bleibt bei diesen nativen Widgets und benötigt dafür keine Scripted GUI.
+
+## Platzierung
+
+Der Builder sucht in der aktuellen Vanilla-Datei zunächst den eindeutigen Header:
+
+```text
+name = "income_and_expenses"
+```
+
+Danach wird der nächste `scroll_list = {`-Block gesucht. Der gemeinsame Pie-Analyseblock wird unmittelbar **vor** diesem Scroll-Listenblock eingefügt.
+
+Damit stehen beide Charts:
+
+- auf derselben Höhe
+- in einem gemeinsamen sichtbaren Panel
+- direkt zwischen `Income / Expenses` und den Budgetlisten
+
+und sind nicht mehr Bestandteil der beiden unterschiedlichen Listenflüsse.
 
 ## Datenquellen
 
@@ -43,53 +79,78 @@ Dynamische Slices:
 - Wert pro Maintenance-Eintrag: `MaintenanceSetting.GetExpense`
 - Tooltip-Bezeichnung: `MaintenanceSetting.GetName`
 
-Damit kann insbesondere auch Building Maintenance in das Expense-Diagramm eingehen, obwohl diese Zeile keinen Slider besitzt.
+Dadurch geht auch Building Maintenance in das Expense-Diagramm ein, obwohl diese Zeile keinen Slider besitzt.
+
+## Center-Werte
+
+In der Mitte des Income-Donuts wird angezeigt:
+
+```text
+EconomyView.GetAllIncome
+```
+
+In der Mitte des Expense-Donuts:
+
+```text
+EconomyView.GetAllExpense
+```
+
+Die Summe ist als separates, zentriertes Text-Widget über dem Donut gerendert und nicht Bestandteil des Piecharts selbst.
 
 ## Farben
 
-Income verwendet mehrere abgestufte Grüntöne. Expenses verwendet mehrere Rot-/Orange-/Bordeaux-Töne.
+Die 0.3.0-Palette war visuell zu homogen. 0.3.1 verwendet deutlich stärkere Helligkeits- und Sättigungsabstände innerhalb derselben Farbfamilie.
 
-Für dynamische Datamodel-Slices wird die Farbe anhand von `PdxGuiWidget.GetIndexInDataModel` zyklisch aus einer Palette gewählt. Dadurch bleiben benachbarte Slices unterscheidbar, ohne dass für jede mögliche Estate- oder Maintenance-Art eine harte Zuordnung nötig ist.
+Income reicht von dunklem Waldgrün über kräftiges Grün und Türkisgrün bis zu hellem Olivgrün.
+
+Expenses reicht von dunklem Bordeaux über kräftiges Rot und Magentarot bis zu Orange-/Rosttönen.
+
+Dynamische Datamodel-Slices wechseln zyklisch durch diese Paletten.
 
 ## Tooltips
 
-Statische Slices zeigen im Prototyp:
+Alle Slices erhalten jetzt explizit:
+
+```text
+tagtooltip_enabled = yes
+```
+
+Statische Slices zeigen:
 
 - Kategoriename
 - monatlichen Goldwert
 - Anteil am gesamten Income bzw. Expense
 
-Dynamische Estate-/Maintenance-Slices zeigen zunächst den vom Spiel gelieferten Namen der jeweiligen Kategorie. Nach erfolgreicher Runtime-Validierung kann der Tooltip zusätzlich um Goldwert und prozentualen Anteil erweitert werden.
+Dynamische Estate- und Maintenance-Slices zeigen ebenfalls:
+
+- vom Spiel gelieferten Namen
+- realen Monatswert
+- Anteil an der jeweiligen Gesamtsumme
+
+Beispiel:
+
+```text
+Fort Maintenance: -22.54 (13.9%)
+```
 
 ## Builder-Architektur
 
-`tools/build_debug_gui.bat` führt jetzt zwei Schritte aus:
+`tools/build_debug_gui.bat` führt weiterhin zwei Schritte aus:
 
-1. `build_debug_gui.py` erzeugt wie bisher den aktuellen Economy-Override auf Basis der lokal installierten Vanilla-Datei.
-2. `add_economy_pies.py` entdeckt die vorhandenen Income-/Expense-Kategorien und injiziert die beiden Pie-Charts an den Vanilla-Ankern der linken und rechten Budgetspalte.
+1. `build_debug_gui.py` erzeugt den Economy-Override aus der lokal installierten Vanilla-Datei.
+2. `add_economy_pies.py` entdeckt die vorhandenen Income-/Expense-Kategorien und injiziert den gemeinsamen Analyseblock.
 
-Dadurch bleibt der bestehende Ansatz erhalten, keine komplette 1.3-GUI statisch im Repository einzufrieren.
+Damit bleibt die Mod gegen kleinere Vanilla-Änderungen deutlich robuster als ein statischer kompletter GUI-Snapshot.
 
-## Offener Runtime-Test
+## Nächster Runtime-Test
 
-Noch nicht durch einen Screenshot validiert ist die Kombination aus:
+Nach `git pull` und `tools\\build_debug_gui.bat` prüfen:
 
-- direkt definierten statischen `pieslice`-Elementen und
-- zusätzlichen über `datamodel`/`item` erzeugten Slices
+- beide Donuts stehen direkt nebeneinander im selben Panel
+- sie stehen vollständig oberhalb der Budgetlisten
+- Income- und Expense-Summe stehen lesbar in der Donut-Mitte
+- die Slices sind durch deutlich unterschiedliche Farbtöne erkennbar
+- Hover auf jedem Slice zeigt einen Tooltip
+- dynamische Estate-/Maintenance-Slices sind weiterhin Bestandteil desselben Charts
 
-innerhalb desselben `piechart`-Widgets.
-
-Die Einzelmechanismen sind aus Vanilla belegt; die gemischte Verwendung im selben Pie ist der zentrale Testpunkt von 0.3.0-alpha.
-
-Falls Jomini diese Kombination nicht akzeptiert, wird die Darstellung im nächsten Schritt auf eine Variante umgestellt, die statische und dynamische Beiträge anders aggregiert bzw. in getrennten Datenpfaden rendert.
-
-## Erwarteter Test
-
-Nach `git pull` und `tools\\build_debug_gui.bat`:
-
-- Economy öffnen
-- links oberhalb der Income-Liste sollte ein grünes Pie erscheinen
-- rechts oberhalb der Expense-Liste sollte ein rotes Pie erscheinen
-- einzelne Slices mit der Maus testen
-- Screenshot der gesamten Balance-Seite senden
-- bei fehlenden oder fehlerhaften Diagrammen relevante `error.log`-Zeilen mitsenden
+Falls die Slices trotz der stärkeren Palette weiterhin nicht sauber getrennt sichtbar sind, ist der nächste Schritt nicht weiteres Farb-Tuning, sondern eine Umstellung des Datenmodells auf einen einzigen vereinheitlichten Pie-Datamodel-Pfad.
