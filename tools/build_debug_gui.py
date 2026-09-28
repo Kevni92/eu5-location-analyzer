@@ -30,13 +30,19 @@ DEFAULT_OUTPUT = REPO_ROOT / "in_game" / "gui" / "economy_lateralview.gui"
 # Tax Base uses `text`, not `raw_text`, because the named block in the vanilla
 # subheader template already defines a `text` property. The first debug build used
 # raw_text here and the untouched base `text = "default"` won, producing the
-# literal word "default" in-game. The guarded Select_CFixedPoint pattern is used
-# elsewhere in current EU5 GUI mods and avoids division by zero.
+# literal word "default" in-game.
+#
+# A first guarded version wrapped Divide_CFixedPoint in
+# Select_CFixedPoint(GreaterThan_CFixedPoint(...)). Runtime testing showed that the
+# localization/data-fetch path for this `text` field rejects that nested expression.
+# We therefore use the direct division here. For a normal playable country Wealth
+# is > 0; if we later need a zero-Wealth observer edge case, handle it outside this
+# localized text expression rather than nesting Select_CFixedPoint again.
 PATCHES = (
     (
         "taxable_wealth_share",
         'text = "[Player.GetTotalTaxBase]"',
-        'text = "[Player.GetTotalTaxBase|2] ([Select_CFixedPoint(GreaterThan_CFixedPoint(Player.GetTotalWealth, \'(CFixedPoint)0\'), Divide_CFixedPoint(Player.GetTotalTaxBase, Player.GetTotalWealth), \'(CFixedPoint)0\')|%1])"',
+        'text = "[Player.GetTotalTaxBase|2] ([Divide_CFixedPoint(Player.GetTotalTaxBase, Player.GetTotalWealth)|%1])"',
     ),
     (
         "maintenance_slider_percent_and_budget_share",
