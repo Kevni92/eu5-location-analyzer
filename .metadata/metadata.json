@@ -2,7 +2,7 @@
   "name": "EU5 Location Analyzer - Economy Analysis UI",
   "id": "kevni92.eu5_location_analyzer",
   "game_id": "eu5",
-  "version": "0.2.3-alpha",
+  "version": "0.2.4-alpha",
   "supported_game_version": "1.3.*",
   "short_description": "Economy analysis UI for EU5. Adds slider budget shares plus income-source and fixed-expense shares of monthly totals.",
   "tags": [
