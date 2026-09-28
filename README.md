@@ -1,36 +1,58 @@
 # EU5 Location Analyzer
 
-Debug-/Prototyping-Mod für Europa Universalis V.
+Analyse-/Prototyping-Mod für Europa Universalis V.
 
-## Aktueller Stand: Economy Debug UI (0.1.0-debug)
+## Aktueller Stand: Economy Analysis UI (0.2.0-alpha)
 
-Die erste Version verändert ausschließlich die Economy-Seite und soll Daten für die spätere finale UI liefern.
+Die erste aus der Debugphase abgeleitete Version erweitert die Economy-Seite um direkt nutzbare Planungswerte.
 
 Sie ergänzt:
 
-- `Tax Base` um `Tax Base / Wealth` in Prozent,
-- bei generischen Maintenance-/Spending-Slidern die exakte Sliderstellung **und den Anteil an den gesamten Monatsausgaben**,
+- `Tax Base` um den Anteil der Tax Base am gesamten Wealth,
+- bei generischen Maintenance-/Spending-Slidern die exakte Sliderstellung und den Anteil an den gesamten Monatsausgaben,
 - beim Stability-Investment ebenfalls Sliderstellung und Ausgabenanteil,
 - die von Vanilla bereits angezeigten absoluten monatlichen Kosten bleiben sichtbar.
 
-Debugformat bei Slidern:
+Anzeige bei Slidern:
 
 ```text
-25%|4%B
+25% | 4.2%B
 ```
 
 bedeutet:
 
 ```text
-Sliderstellung:                25 %
-Anteil an gesamten Ausgaben:    4 %
+Sliderstellung:                       25.0 %
+Anteil an gesamten Monatsausgaben:     4.2 %
 ```
 
-Damit kann ein Screenshot gleichzeitig Wealth, Tax Base, Economic Base, Tax Efficiency, Sliderstellung, Sliderkosten und Budgetanteil zeigen.
+`B` steht in dieser Alpha-Version für Budgetanteil = Anteil an `EconomyView.GetAllExpense`.
+
+Oben soll Tax Base beispielsweise so erscheinen:
+
+```text
+287.80 (80.1%)
+```
+
+Der Prozentwert ist:
+
+```text
+Tax Base / Wealth
+```
+
+und damit bewusst etwas anderes als die daneben stehende `Tax Efficiency`.
+
+## Laufzeitvalidierung vom 28.09.2026
+
+Der erste Ingame-Test hat bestätigt, dass die generischen Sliderwerte und deren Budgetanteile funktionieren. Sichtbar waren unter anderem Court, Army, Navy, Fort, Diplomatic Spending und Food. Stability funktioniert als separater EconomyView-Block.
+
+Der erste Tax-Base-Prototyp zeigte dagegen das Wort `default`. Ursache war die Verwendung von `raw_text` in einem Vanilla-Block, dessen Basistemplate bereits eine `text`-Property definiert. Version 0.2.0-alpha überschreibt nun gezielt `text` und verwendet für die Division das in EU5-GUIs etablierte `Select_CFixedPoint(... Divide_CFixedPoint(...))`-Muster mit Nullschutz.
+
+Die Budgetquote wird nun mit einer Nachkommastelle ausgegeben. Das vermeidet die in der ersten Debugversion sichtbare Abschneidung, z. B. bei Fortkosten knapp unter 14 %.
 
 ## Warum wird die GUI generiert?
 
-`in_game/gui/economy_lateralview.gui` ist ein Whole-file-Override. Eine fest eingecheckte Kopie würde bei jedem EU5-Patch schnell veralten. Der Builder nimmt deshalb **deine aktuell installierte Vanilla-Datei** und wendet nur drei kleine, validierte Debug-Patches an.
+`in_game/gui/economy_lateralview.gui` ist ein Whole-file-Override. Eine fest eingecheckte Kopie würde bei jedem EU5-Patch schnell veralten. Der Builder nimmt deshalb **deine aktuell installierte Vanilla-Datei** und wendet nur kleine, validierte Analyse-Patches an.
 
 Nach dem Build liegt die fertige Workshop-Datei unter:
 
@@ -68,17 +90,19 @@ python tools/build_debug_gui.py --source "...\\game\\in_game\\gui\\economy_later
 
 Der Builder bricht absichtlich ab, wenn die erwarteten Vanilla-Anker nicht exakt gefunden werden. Damit wird nach einem Patch keine veraltete GUI stillschweigend erzeugt.
 
-## Test/Screenshot
+## Nächster Test
 
-1. Mod aktivieren und Economy-Seite öffnen.
-2. Einen Screenshot des oberen Bereichs mit Economic Base / Wealth / Tax Base / Tax Efficiency machen.
-3. Einen Screenshot machen, auf dem die relevanten Ausgaben-Slider samt Kosten und Debugwert `Slider%|Budget%B` sichtbar sind.
-4. Besonders interessant sind Stability, Diplomacy und Court/Government-/Legitimacy-bezogene Spending-Slider.
-5. Falls die Economy-Seite nicht öffnet oder ein Debugwert leer/falsch ist, zusätzlich `error.log` nach `economy_lateralview`, `MaintenanceSetting`, `GetSliderValue`, `GetExpense`, `GetAllExpense`, `Divide_CFixedPoint` oder `GetDefaultStabilityInvestment` durchsuchen.
+Nach einem `git pull` den Builder erneut ausführen und Economy öffnen. Prüfen:
+
+1. `Tax Base` zeigt jetzt einen Zahlenwert plus Prozent in Klammern statt `default`.
+2. Court/Diplomacy/Army/Navy/Fort usw. zeigen `Slider% | Budget%B` mit einer Nachkommastelle.
+3. Stability zeigt dasselbe Format; ein Test mit Stability > 0 % ist besonders nützlich.
+
+Falls etwas leer oder falsch ist, bitte Screenshot und passende `error.log`-Zeilen senden.
 
 ## Kompatibilität
 
-Die Debug-Version überschreibt `in_game/gui/economy_lateralview.gui` vollständig und kollidiert daher mit anderen Mods, die dieselbe Datei überschreiben. Für den Test sollte der Location Analyzer nach solchen UI-Mods geladen werden oder diese sollten vorübergehend deaktiviert sein.
+Die Alpha-Version überschreibt `in_game/gui/economy_lateralview.gui` vollständig und kollidiert daher mit anderen Mods, die dieselbe Datei überschreiben. Für Tests sollte der Location Analyzer nach solchen UI-Mods geladen werden oder diese sollten vorübergehend deaktiviert sein.
 
 Die Mod ändert keine Spielmechanik und ist in `.metadata/metadata.json` als nicht multiplayer-synchronisiert markiert.
 
