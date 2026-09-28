@@ -136,11 +136,12 @@ def apply_patch_once(text: str, patch_name: str, old: str, new: str) -> str:
 
 
 def apply_non_slider_maintenance_share_patch(text: str) -> tuple[str, int]:
-    """Patch only the maintenance rows rendered without a slider.
+    """Patch only maintenance rows rendered without a slider.
 
-    GetExpenseWithCurrency occurs in both the slider and non-slider maintenance templates,
-    so a global single-anchor replacement is ambiguous. Anchor first on ShowSlider=false
-    and replace the expense text inside that item only.
+    GetExpenseWithCurrency is a preformatted display string. Concatenating extra GUI
+    expressions to it can result in Jomini rendering "Unreadable String". For these rows,
+    use the already validated numeric GetExpense getter and render the expense currency
+    icon explicitly, then append the calculated budget share.
     """
     marker = (
         'visible = "[And( Not(MaintenanceSetting.ShowSlider), '
@@ -155,7 +156,7 @@ def apply_non_slider_maintenance_share_patch(text: str) -> tuple[str, int]:
 
     target = 'raw_text = "[MaintenanceSetting.GetExpenseWithCurrency]"'
     replacement = (
-        'raw_text = "[MaintenanceSetting.GetExpenseWithCurrency] '
+        'raw_text = "[MaintenanceSetting.GetExpense|2+=]@expense! '
         f"([Divide_CFixedPoint(Abs_CFixedPoint(MaintenanceSetting.GetExpense), {EXPENSE_SHARE_DENOMINATOR})|%1])"
     )
 
