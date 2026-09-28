@@ -1,10 +1,10 @@
-# 05 – Economy Debug GUI MVP
+# 05 – Economy Debug GUI MVP / Runtime-Validierung
 
 Stand: 2026-09-28
 
 ## Zweck
 
-Diese Version ist absichtlich keine finale Economy-UI. Sie ist ein diagnostischer MVP, der mit möglichst kleinen Änderungen an der Vanilla-Economy-Seite genau die Werte sichtbar macht, die für die nächste Designrunde benötigt werden.
+Dieses Dokument beschreibt den diagnostischen Economy-MVP und die Ergebnisse des ersten Ingame-Tests. Aus diesem Test wurde Version `0.2.0-alpha` der Economy Analysis UI abgeleitet.
 
 ## Technischer Ansatz
 
@@ -14,7 +14,7 @@ Der Builder verlangt für jeden Patch genau einen erwarteten Vanilla-Anker. Änd
 
 ## Verifizierte Budget-Getter
 
-Die Recherche nach dem ersten Entwurf hat einen wichtigen offenen Punkt geklärt. Vanilla verwendet in `in_game/gui/shared/topbar_tooltips.gui` direkt:
+Vanilla verwendet in `in_game/gui/shared/topbar_tooltips.gui` direkt:
 
 ```text
 EconomyView.GetAllIncome
@@ -23,161 +23,119 @@ EconomyView.GetAllExpense
 
 Damit stehen numerische Gesamtwerte für monatliche Einnahmen und Ausgaben zur Verfügung.
 
-Für einzelne generische Maintenance-/Spending-Einträge ist zusätzlich `MaintenanceSetting.GetExpense` in aktuellen 1.3-UI-Implementierungen belegt. Für die Debuganzeige wird der Betrag mit `Abs_CFixedPoint` normalisiert, damit die Budgetquote unabhängig von der Vorzeichenkonvention positiv dargestellt wird.
+Für einzelne generische Maintenance-/Spending-Einträge ist `MaintenanceSetting.GetExpense` verwendbar. Die erste Laufzeitprobe bestätigt außerdem, dass `MaintenanceSetting.GetSliderValue` in der Economy-Seite den tatsächlichen Sliderwert liefert.
 
-## Debug-Patches
-
-### 1. Tax Base / Wealth
-
-Vanilla:
+Für Stability funktionieren die separaten Zugriffe:
 
 ```text
-Tax Base: <absolute value>
+EconomyView.GetDefaultStabilityInvestment
+EconomyView.GetStabilityInvestmentExpense
 ```
 
-Debug:
+## Erster Ingame-Test
+
+Der vom Nutzer getestete Spielstand zeigte unter anderem:
 
 ```text
-Tax Base: <absolute value> | <Tax Base / Wealth %> W
+Economic Base:       287.80
+Wealth:              359.26
+Income:              +40.52
+Expenses:            -161.36
+Court:               -10.54   / Slider 32% / Debug Budget 6%
+Army:                 -3.85   / Slider 100% / Debug Budget 2%
+Navy:                 -7.32   / Slider 100% / Debug Budget 4%
+Fort:                -22.54   / Slider 100% / Debug Budget 13%
+Diplomatic Spending: -15.82   / Slider 50% / Debug Budget 9%
+Food:                  0.00   / Slider 100% / Debug Budget 0%
+Stability:             0.00   / Slider 0% / Debug Budget 0%
+Building Maintenance:-13.43
+Trade Expense:       -87.82
 ```
 
-Berechnung:
+Damit ist bestätigt, dass die generischen Sliderkarten gleichzeitig ihren realen monatlichen Aufwand, ihre Sliderstellung und ihren Anteil an den gesamten Monatsausgaben darstellen können.
+
+Die erste Debugversion formatierte den Budgetanteil ohne Nachkommastelle. Dadurch wurden Werte effektiv abgeschnitten bzw. zu grob dargestellt. Beispiel: `22.54 / 161.36 ≈ 13.97%`, während die Debuganzeige `13%B` zeigte. Version `0.2.0-alpha` nutzt deshalb eine Nachkommastelle.
+
+## Tax Base / Wealth – gefundener UI-Fehler
+
+Der erste Build zeigte bei Tax Base statt einer Zahl das Wort:
 
 ```text
-Taxable Wealth Share = Total Tax Base / max(Total Wealth, 0.01)
+default
 ```
 
-Die `0.01` dient nur als Schutz vor Division durch null. Für normale Länder mit Wealth > 0 entspricht der Wert exakt `Tax Base / Wealth`.
+Die Ursache liegt nicht beim Getter `Player.GetTotalTaxBase`, sondern beim Patch des benannten Vanilla-Blocks. Der Vanilla-Subheader besitzt bereits eine `text`-Property. Der MVP setzte zusätzlich `raw_text`; dadurch blieb die ursprüngliche Default-Textproperty aktiv.
 
-Verwendete Zugriffe:
-
-- `Player.GetTotalTaxBase`
-- `Player.GetTotalWealth`
-- `Divide_CFixedPoint`
-- `Max_CFixedPoint`
-
-### 2. Generische Maintenance-/Spending-Slider
-
-Die Vanilla-Karte zeigt bereits den tatsächlichen monatlichen Aufwand über:
+Version `0.2.0-alpha` überschreibt deshalb gezielt `text` und verwendet:
 
 ```text
-MaintenanceSetting.GetExpenseWithCurrency
+Tax Base (Tax Base / Wealth %)
 ```
 
-Der Debug-MVP ersetzt den sekundären Benefit-Text temporär durch eine kompakte Diagnose:
+mit einem Nullschutz über das in EU5-GUIs belegte Muster:
 
 ```text
-25%|4%B
+Select_CFixedPoint(
+    GreaterThan_CFixedPoint(Wealth, 0),
+    Divide_CFixedPoint(TaxBase, Wealth),
+    0
+)
+```
+
+Zielanzeige beispielsweise:
+
+```text
+287.80 (80.1%)
+```
+
+Der Prozentwert ist die `Taxable Wealth Share` und darf nicht mit der daneben stehenden `Tax Efficiency` verwechselt werden.
+
+## Aktuelle Alpha-Anzeige
+
+### Tax Base
+
+```text
+<absolute Tax Base> (<Tax Base / Wealth %>)
+```
+
+### Maintenance-/Spending-Slider
+
+```text
+25% | 4.2%B
 ```
 
 Bedeutung:
 
 ```text
-25 % = MaintenanceSetting.GetSliderValue
- 4 % = abs(MaintenanceSetting.GetExpense) / abs(EconomyView.GetAllExpense)
- B   = Budget / total monthly expenses
+25%   = aktuelle Sliderstellung
+4.2%B = Anteil der tatsächlichen aktuellen Sliderkosten an EconomyView.GetAllExpense
 ```
 
-Damit stehen im selben Screenshot pro generischem Slider zur Verfügung:
+Der absolute monatliche Goldbetrag bleibt in der Vanilla-Kartenüberschrift sichtbar.
 
-- Name,
-- absolute monatliche Kosten,
-- Sliderstellung in Prozent,
-- Anteil an den gesamten Monatsausgaben.
+### Stability
 
-Die finale UI soll den ursprünglichen Benefit-Text wieder erhalten; der Debug-MVP opfert ihn nur für Platz und maximale Robustheit.
+Stability verwendet dasselbe Anzeigeformat, wird technisch aber über die separaten `EconomyView`-Getter berechnet.
 
-### 3. Stability Investment
+## Nächste Validierung
 
-Vanilla zeigt oben bereits:
+Nach Build von `0.2.0-alpha` sollen zwei Dinge geprüft werden:
 
-```text
-EconomyView.GetStabilityInvestmentExpense
-```
+1. Tax Base muss einen numerischen Wert plus Prozentzahl statt `default` anzeigen.
+2. Stability soll einmal mit einem Wert größer als 0 % getestet werden, um den separaten Expense-Pfad auch mit realen Kosten zu validieren.
 
-Der Debug-MVP ersetzt unten temporär die Stability-Change-Anzeige durch dasselbe kompakte Format:
+Diese Tests sind keine Voraussetzung mehr für die UI-Struktur, sondern reine Laufzeitvalidierung.
 
-```text
-25%|4%B
-```
+## Spätere Ausbaustufe
 
-Dabei gilt:
+Für die endgültige UI sind zusätzlich vorgesehen:
 
-```text
-Slider % = EconomyView.GetDefaultStabilityInvestment
-Budget % = abs(EconomyView.GetStabilityInvestmentExpense) / abs(EconomyView.GetAllExpense)
-```
-
-Damit sind absolute Kosten, Sliderstellung und Budgetanteil gleichzeitig sichtbar.
-
-## Was bewusst noch nicht in die Karte gepackt wird
-
-Da `EconomyView.GetAllIncome` nun ebenfalls verifiziert ist, kann später auch berechnet werden:
-
-```text
-Slider Income Burden = Slider Expense / Total Monthly Income
-```
-
-Der Debug-MVP zeigt zunächst nur den Anteil an den Gesamtausgaben (`B`), damit die bestehende 60-Pixel-Zeile nicht überladen wird. Der Einkommensanteil ist für die finale Tooltip-/Detaildarstellung vorgemerkt.
-
-## Gewünschte Screenshots nach dem Build
-
-### Screenshot A – Kopf der Economy-Seite
-
-Sichtbar sollen sein:
-
-- Economic Base,
-- Wealth,
-- Tax Base inklusive neuem Prozentwert,
-- Tax Efficiency,
-- oberer Teil des Balance-Diagramms.
-
-Ziel: Platzbedarf und Format des Wealth/Tax-Base-Verhältnisses beurteilen.
-
-### Screenshot B – relevante Ausgaben-Slider
-
-Sichtbar sollen möglichst gleichzeitig sein:
-
-- Slidername,
-- monatliche Kosten,
-- Debugwert `Slider%|Budget%B`,
-- bei Stability die Stability-Karte.
-
-Besonders wichtig:
-
-- Stability,
-- Diplomacy,
-- Court/Government-/Legitimacy-bezogene Settings,
-- sonstige Settings, die über `EconomyView.GetMaintenanceSettings` erscheinen.
-
-Ziel: feststellen, welche gewünschten Slider tatsächlich über den generischen `MaintenanceSetting`-Datamodel laufen und wie viel horizontaler Platz für zusätzliche Kennzahlen existiert.
-
-### Screenshot C – optional mit Tooltips
-
-Zusätzlich hilfreich:
-
-- Income-Header-Tooltip (`GetAllIncomeInfo`),
-- Expense-Header-Tooltip (`GetAllExpenseInfo`),
-- Tooltip eines relevanten Spending-Sliders.
-
-## Fehlerdiagnose
-
-Falls die Seite nicht korrekt lädt, bitte zusätzlich relevante Zeilen aus `error.log` bereitstellen. Interessante Suchbegriffe:
-
-```text
-economy_lateralview
-MaintenanceSetting
-GetSliderValue
-GetExpense
-GetAllExpense
-Divide_CFixedPoint
-Abs_CFixedPoint
-Max_CFixedPoint
-GetDefaultStabilityInvestment
-```
-
-Ein fehlgeschlagener Probe-Getter ist in dieser Phase ein verwertbares Ergebnis und wird anschließend aus der finalen UI entfernt bzw. durch einen belegten Zugriff ersetzt.
+- ausgeschriebener Tooltip für `Budget share`,
+- optional `Slider Expense / Total Monthly Income`,
+- marginale Kosten einer Slidererhöhung um +10 Prozentpunkte,
+- aggregierter Economic-Base-Spending-Pressure,
+- Verbindung dieser Landeskennzahlen mit den späteren Location-Map-Modes.
 
 ## Kompatibilität
 
-Der erzeugte GUI-Override kollidiert mit jeder anderen Mod, die `in_game/gui/economy_lateralview.gui` ebenfalls ersetzt. Das ist für den Debug-MVP akzeptiert und muss für eine spätere Release-Version explizit behandelt werden.
+Der erzeugte GUI-Override kollidiert mit jeder anderen Mod, die `in_game/gui/economy_lateralview.gui` ebenfalls ersetzt. Das bleibt für die Alpha akzeptiert und muss für eine spätere Release-Version explizit behandelt werden.
