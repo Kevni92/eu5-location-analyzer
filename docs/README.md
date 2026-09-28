@@ -33,6 +33,7 @@ Zusätzlich soll die Economy-Seite bessere Planungsinformationen liefern, insbes
 - [02 – Bewertungsmodell und Map-Mode-Ideen](02_bewertungsmodell_und_map_modes.md)
 - [03 – Offene Fragen und Research-Backlog](03_offene_fragen_und_research_backlog.md)
 - [04 – Economy-Page UI-Erweiterungen](04_economy_page_ui_erweiterungen.md)
+- [05 – Economy Debug GUI MVP](05_economy_debug_gui_mvp.md)
 
 ## Grundprinzip
 
