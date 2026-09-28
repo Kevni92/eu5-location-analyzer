@@ -30,6 +30,11 @@ PATCHES = (
         'raw_text = "[MaintenanceSetting.GetSliderValue|0%V] | [Divide_CFixedPoint(Abs_CFixedPoint(MaintenanceSetting.GetExpense), Max_CFixedPoint(Abs_CFixedPoint(EconomyView.GetAllExpense), \'(CFixedPoint)0.01\'))|%1]B"',
     ),
     (
+        "non_slider_maintenance_budget_share",
+        'raw_text = "[MaintenanceSetting.GetExpenseWithCurrency]"',
+        'raw_text = "[MaintenanceSetting.GetExpenseWithCurrency] ([Divide_CFixedPoint(Abs_CFixedPoint(MaintenanceSetting.GetExpense), Max_CFixedPoint(Abs_CFixedPoint(EconomyView.GetAllExpense), \'(CFixedPoint)0.01\'))|%1])"',
+    ),
+    (
         "stability_slider_percent_and_budget_share",
         'raw_text = "[EconomyView.GetStabilityChange|2+=]@stability!"',
         'raw_text = "[EconomyView.GetDefaultStabilityInvestment|0%V] | [Divide_CFixedPoint(Abs_CFixedPoint(EconomyView.GetStabilityInvestmentExpense), Max_CFixedPoint(Abs_CFixedPoint(EconomyView.GetAllExpense), \'(CFixedPoint)0.01\'))|%1]B"',
