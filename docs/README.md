@@ -24,6 +24,8 @@ Zusätzlich soll die Economy-Seite bessere Planungsinformationen liefern, insbes
 
 - Verhältnis von Tax Base zu Wealth (`Taxable Wealth Share`),
 - Anteil einzelner Economy-Slider an den gesamten Monatsausgaben,
+- Anteil jeder sichtbaren Einnahmequelle an den gesamten Monatseinnahmen,
+- Anteil fester Ausgabenposten an den gesamten Monatsausgaben,
 - optional Anteil der Sliderkosten am Monatseinkommen,
 - später marginale Kosten einer Slidererhöhung und aggregierter Economic-Base-Spending-Druck.
 
@@ -35,6 +37,7 @@ Zusätzlich soll die Economy-Seite bessere Planungsinformationen liefern, insbes
 - [04 – Economy-Page UI-Erweiterungen](04_economy_page_ui_erweiterungen.md)
 - [05 – Economy Debug GUI MVP](05_economy_debug_gui_mvp.md)
 - [06 – Economy Analysis UI Runtime-Validierung 0.2.1](06_runtime_validation_0_2_1.md)
+- [07 – Income-/Expense-Share UI](07_income_expense_share_ui.md)
 
 ## Grundprinzip
 
