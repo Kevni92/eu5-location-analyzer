@@ -5,11 +5,11 @@ where py >nul 2>nul
 if %errorlevel%==0 (
   py -3 "%~dp0build_debug_gui.py" %*
   if errorlevel 1 goto :failed
-  py -3 "%~dp0add_economy_pies.py" %*
+  py -3 "%~dp0run_economy_pies.py" %*
 ) else (
   python "%~dp0build_debug_gui.py" %*
   if errorlevel 1 goto :failed
-  python "%~dp0add_economy_pies.py" %*
+  python "%~dp0run_economy_pies.py" %*
 )
 
 if errorlevel 1 goto :failed
